@@ -62,6 +62,7 @@ class EulerianPathState:
                 surroundings = [self.grid[x - 1][y], self.grid[x + 1][y], self.grid[x][y - 1], self.grid[x][y + 1]]
                 if color in surroundings:
                         return False
+
         for y in range(self.boundary_size):
             color = self.grid[0][y]
             surroundings = self.grid[1][y]
@@ -95,42 +96,64 @@ class EulerianPathState:
 
 class MarkovChain:
 
-    def __init__(self, weights):
-        self.weights = weights
+    def __init__(self, weights=[1, 1, 1, 1, 1, 1]):
+        self.weights = [(w / np.sum(weights)) for w in weights]
+        self.configurations = []
+
+        # Going in a counter clockwise direction through the four boxes
+        self.configurations.append([0, 1, 0, -1])  # CROSS
+        self.configurations.append([0, 1, 0, 1])  # BACKWARDS L
+        self.configurations.append([0, -1, 0, -1])  # CORNER
+        self.configurations.append([0, 1, -1, 1])  # VERTICAL LINE
+        self.configurations.append([0, -1, 1, -1])  # HORIZONTAL LINE
+        self.configurations.append([0, -1, 0, 1])  # EMPTY
+
+    def replace_four(self, initial_state, vertex, config):
+        state = EulerianPathState(initial_state.sources, initial_state.sinks, initial_state.boundary_size, initial_state.grid)
+
+        state.grid[vertex[0] - 1][vertex[1]] = state.grid[vertex[0] - 1][vertex[1]] + config[1]
+        state.grid[vertex[0] - 1][vertex[1] - 1] = state.grid[vertex[0] - 1][vertex[1] - 1] + config[2]
+        state.grid[vertex[0]][vertex[1] - 1] = state.grid[vertex[0]][vertex[1] - 1] + config[3]
+
+        return state
+
+    def score(self, old_state, new_state, vertex_of_change):
+        return random.randint(0, 5)
 
     def step(self, initial_state):
-        # Generate a random number between 1 and 2 * boundary_size - 1 (this is the longest a path can be)
-        num_edges = random.randint(1, 2 * (initial_state.boundary_size - 1))
-
-        # choose a random source
-        choosen_source = initial_state.sources[random.randint(0, len(initial_state.sources))]
-
-        # step along the path. You can only move right or down.
-
-        # Well actually, fuck it.
-
         x = random.randint(1, (initial_state.boundary_size - 1))
         y = random.randint(1, (initial_state.boundary_size - 1))
 
-        # Find the four numbers around it
-        around = list()
-        around.append(initial_state.grid[x][y + 1], initial_state.grid[x][y - 1], initial_state.grid[x + 1][y], initial_state.grid[x - 1][y])
+        vertex = (3,3)
+        valid_colorings = []
 
-        state_color = initial_state.grid[x][y]
-        if (state_color + 2) % 3 not in around:
-            # Check if this is right...
-            initial_state.grid[x][y] = (state_color + 2) % 3
-        # Else, do nothing.
+        for config in self.configurations:
+            state = self.replace_four(initial_state, vertex, config)
+            if state.check_validity():
+                valid_colorings.append(state)
 
-        return 0
+        scores = []
+
+        for valid in valid_colorings:
+            scores.append(self.score(initial_state, valid, vertex))
+
+        for x in valid_colorings:
+            x.draw()
+            print()
+
+        return valid_colorings[1]
 
     def time_travel(self, iterations, initial_state):
         curr_state = initial_state
         for i in range(iterations):
-            curr_state.draw()
+            #curr_state.draw()
+            #print(curr_state.check_validity())
+            #print("done")
             curr_state = self.step(curr_state)
 
 # Note : These are translated sources (corresponding to boxes rather than points).
 eps = EulerianPathState(sources=[(0, 1), (0, 3), (0,4)], sinks=[(1,5 - 1), (2,5 - 1), (4, 5 - 1)], boundary_size=5)
-eps.draw()
-print(eps.check_validity())
+#eps.draw()
+#print(eps.check_validity())
+mc = MarkovChain()
+mc.time_travel(1, eps)
