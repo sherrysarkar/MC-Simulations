@@ -175,8 +175,16 @@ class MarkovChain:
         state.grid[vertex[0] - 1][vertex[1] - 1] = (x + config[2]) % 3
         state.grid[vertex[0]][vertex[1] - 1] = (x + config[3]) % 3
 
-        if state.check_validity():
-            #state.draw()
+        # Count number of changes. If it's greater than 1, it's not something you can move to.
+        changes = 0
+        if state.grid[vertex[0] - 1][vertex[1]] != initial_state.grid[vertex[0] - 1][vertex[1]]:
+            changes += 1
+        if state.grid[vertex[0] - 1][vertex[1] - 1] != initial_state.grid[vertex[0] - 1][vertex[1] - 1]:
+            changes += 1
+        if state.grid[vertex[0]][vertex[1] - 1] != initial_state.grid[vertex[0]][vertex[1] - 1]:
+            changes += 1
+
+        if state.check_validity() and changes <= 1:
             return state
 
         return None
@@ -205,10 +213,12 @@ class MarkovChain:
             print("Start Iteration " + str(i))
             curr_state = self.step(curr_state)
             curr_state.draw()
+            if i % 1 == 0:
+                curr_state.draw_GUI()
 
 # Note : These are translated sources (corresponding to boxes rather than points).
 eps = EulerianPathState(sources=[(0, 1), (0, 3), (0,4)], sinks=[(1,5 - 1), (2,5 - 1), (4, 5 - 1)], boundary_size=5)
 #eps.draw()
 mc = MarkovChain()
-eps.draw()
-eps.draw_GUI()
+mc.time_travel(15, eps)
+
