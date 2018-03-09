@@ -16,45 +16,78 @@ class EulerianPathState:
         self.boundary_size = boundary_size
 
         # Let each face be uniquely represented by it's lowest left most corner.
+        self.grid = []
         if len(grid) == 0:
-            self.grid = self.generate_paths()
+            self.generate_paths()
         else:
             self.grid = grid
 
     def generate_paths(self):
         # generate a valid Eulerian Routing
-        grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+        self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
 
         # First, go around the boundary, with sources then sinks.
         for y in range(1, self.boundary_size):
             if (0, y) in self.sources:
-                grid[0][y] = (grid[0][y - 1] + 1) % 3
+                self.grid[0][y] = (self.grid[0][y - 1] + 1) % 3
             else:
-                grid[0][y] = (grid[0][y - 1] - 1) % 3
+                self.grid[0][y] = (self.grid[0][y - 1] - 1) % 3
 
         for x in range(1, self.boundary_size):
             if (x, self.boundary_size - 1) in self.sinks:
-                grid[x][self.boundary_size - 1] = (grid[x - 1][self.boundary_size - 1] - 1) % 3
+                self.grid[x][self.boundary_size - 1] = (self.grid[x - 1][self.boundary_size - 1] - 1) % 3
             else:
-                grid[x][self.boundary_size - 1] = (grid[x - 1][self.boundary_size - 1] + 1) % 3
+                self.grid[x][self.boundary_size - 1] = (self.grid[x - 1][self.boundary_size - 1] + 1) % 3
 
         # Rest of boundary
 
         for x in range(1, self.boundary_size):
-            grid[x][0] = (grid[x - 1][0] + 1) % 3
+            self.grid[x][0] = (self.grid[x - 1][0] + 1) % 3
 
         for y in range(1, self.boundary_size):
-            grid[self.boundary_size - 1][y] = (grid[self.boundary_size - 1][y - 1] - 1) % 3
+            self.grid[self.boundary_size - 1][y] = (self.grid[self.boundary_size - 1][y - 1] - 1) % 3
 
         # We can fill in the rest.
+        self.draw()
 
-        for x in range(1, self.boundary_size - 1):
-            for y in range(1, self.boundary_size - 1):
-                grid[x][y] = (grid[x][y - 1] - 1) % 3
+        while self.check_validity() is not True:
+            print("Here!")
+            for x in range(1, self.boundary_size - 1):
+                for y in range(1, self.boundary_size - 1):
+                    self.grid[x][y] = random.randint(0,2)
+                    self.draw()
 
-        grid[1][3] = 0 # Hardcode cause fuck it.
+        # for x in range(1, self.boundary_size - 1):
+        #     for y in range(1, self.boundary_size - 1):
+        #         grid[x][y] = (grid[x][y - 1] - 1) % 3
+        #
+        # grid[1][3] = 0 # Hardcode cause fuck it. // Usual Method
 
-        return grid
+
+    def count_edges(self):
+        vertices = []
+
+        for x in range(self.boundary_size - 1):  # Are all these -1's right? Somehow, I doubt it...
+            for y in range(self.boundary_size - 1):
+                if (self.grid[x][y] + 1) % 3 == self.grid[x][y + 1]:
+                    vertices += [(x, y + 1), (x + 1, y + 1)]
+
+        if len(vertices) % 2 == 0:
+            rights = len(vertices) / 2
+        else:
+            raise "Number of vertices for rights was odd."
+
+        for y in range(self.boundary_size):
+            for x in range(self.boundary_size - 1):
+                if (self.grid[x][y] - 1) % 3 == self.grid[x + 1][y]:
+                    vertices += [(x + 1, y + 1), (x + 1, y)]
+
+        if len(vertices) % 2 == 0:
+            ups = (len(vertices) / 2) - rights
+        else:
+            raise "Number of vertices for rights was odd."
+
+        return rights, ups
 
     def check_validity(self):
         for x in range(1, self.boundary_size - 1):
@@ -94,6 +127,7 @@ class EulerianPathState:
             for j in range(length):
                 print(self.grid[j][length - i - 1], end='  ')
             print()
+        #print(self.Rs, self.Us)
         print()
 
     def set_up_GUI(self):
@@ -114,6 +148,7 @@ class EulerianPathState:
                     codes += [Path.MOVETO]
                     codes += [Path.LINETO]
 
+        print(len(vertices))
         return vertices, codes
 
     def draw_GUI(self):
@@ -145,7 +180,7 @@ class EulerianPathState:
         pathpatch = PathPatch(path, facecolor='None', edgecolor='green', linewidth=2.0)
 
         ax.add_patch(pathpatch)
-        ax.set_title('Eularian Routings on Bounded Lattice')
+        ax.set_title('Eularian Routings on Bounded Lattice: Iteration ')
 
         ax.dataLim.update_from_data_xy(vertices)
         ax.set_xlim(0, self.boundary_size)
@@ -167,14 +202,7 @@ class MarkovChain:
         self.configurations.append([0, -1, 1, -1])  # HORIZONTAL LINE
         self.configurations.append([0, -1, 0, 1])  # EMPTY
 
-    def replace_four(self, initial_state, vertex, config):
-        state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
-
-        x = state.grid[vertex[0]][vertex[1]]
-        state.grid[vertex[0] - 1][vertex[1]] = (x + config[1]) % 3
-        state.grid[vertex[0] - 1][vertex[1] - 1] = (x + config[2]) % 3
-        state.grid[vertex[0]][vertex[1] - 1] = (x + config[3]) % 3
-
+    def valid_transition(self, initial_state, state, vertex, config):
         # Count number of changes. If it's greater than 1, it's not something you can move to.
         changes = 0
         if state.grid[vertex[0] - 1][vertex[1]] != initial_state.grid[vertex[0] - 1][vertex[1]]:
@@ -184,7 +212,21 @@ class MarkovChain:
         if state.grid[vertex[0]][vertex[1] - 1] != initial_state.grid[vertex[0]][vertex[1] - 1]:
             changes += 1
 
-        if state.check_validity() and changes <= 1:
+        if initial_state.count_edges()[0] == state.count_edges()[0] and initial_state.count_edges()[1] == state.count_edges()[1]:
+            if state.check_validity() and changes <= 1:
+                return True
+
+        return False
+
+    def replace_four(self, initial_state, vertex, config):
+        state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
+
+        x = state.grid[vertex[0]][vertex[1]]
+        state.grid[vertex[0] - 1][vertex[1]] = (x + config[1]) % 3
+        state.grid[vertex[0] - 1][vertex[1] - 1] = (x + config[2]) % 3
+        state.grid[vertex[0]][vertex[1] - 1] = (x + config[3]) % 3
+
+        if self.valid_transition(initial_state, state, vertex, config):
             return state
 
         return None
@@ -196,7 +238,7 @@ class MarkovChain:
         x = random.randint(1, (initial_state.boundary_size - 1))
         y = random.randint(1, (initial_state.boundary_size - 1))
 
-        vertex = (1,3)
+        vertex = (x,y)
         valid_colorings = []
 
         for config in self.configurations:
@@ -219,6 +261,7 @@ class MarkovChain:
 # Note : These are translated sources (corresponding to boxes rather than points).
 eps = EulerianPathState(sources=[(0, 1), (0, 3), (0,4)], sinks=[(1,5 - 1), (2,5 - 1), (4, 5 - 1)], boundary_size=5)
 #eps.draw()
+eps.draw_GUI()
 mc = MarkovChain()
 mc.time_travel(15, eps)
 
