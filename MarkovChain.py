@@ -22,7 +22,7 @@ class EulerianPathState:
         else:
             self.grid = grid
 
-    def generate_paths(self):
+    def small_generate_paths(self):
         # generate a valid Eulerian Routing
         self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
 
@@ -63,6 +63,29 @@ class EulerianPathState:
         #
         # grid[1][3] = 0 # Hardcode cause fuck it. // Usual Method
 
+    def generate_paths(self):
+        self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+
+        # What are our two horizontal lines? y = 3 and y = 5 (hard code for now)
+
+        # Do the base line first.
+        for x in range(1, self.boundary_size):
+            self.grid[x][0] = (self.grid[x - 1][0] + 1) % 3
+
+        for x in range(self.boundary_size):
+            for y in range(1, self.boundary_size):
+                if x <= 24:
+                    if y == 3 or y == 5:
+                        self.grid[x][y] = (self.grid[x][y - 1] + 1) % 3
+                    else:
+                        self.grid[x][y] = (self.grid[x][y - 1] - 1) % 3
+                elif x <= 26:
+                    if y== 3:
+                        self.grid[x][y] = (self.grid[x][y - 1] + 1) % 3
+                    else:
+                        self.grid[x][y] = (self.grid[x][y - 1] - 1) % 3
+                else:
+                    self.grid[x][y] = (self.grid[x][y - 1] - 1) % 3
 
     def count_edges(self):
         vertices = []
@@ -151,7 +174,7 @@ class EulerianPathState:
         print(len(vertices))
         return vertices, codes
 
-    def draw_GUI(self):
+    def draw_GUI(self, i):
 
         fig, ax = plt.subplots()
 
@@ -180,7 +203,7 @@ class EulerianPathState:
         pathpatch = PathPatch(path, facecolor='None', edgecolor='green', linewidth=2.0)
 
         ax.add_patch(pathpatch)
-        ax.set_title('Eularian Routings on Bounded Lattice: Iteration ')
+        ax.set_title('Eularian Routings on Bounded Lattice: Iteration ' + str(i))
 
         ax.dataLim.update_from_data_xy(vertices)
         ax.set_xlim(0, self.boundary_size)
@@ -195,73 +218,158 @@ class MarkovChain:
         self.configurations = []
 
         # Going in a counter clockwise direction through the four boxes
-        self.configurations.append([0, 1, 0, -1])  # CROSS
-        self.configurations.append([0, 1, 0, 1])  # BACKWARDS L
-        self.configurations.append([0, -1, 0, -1])  # CORNER
-        self.configurations.append([0, 1, -1, 1])  # VERTICAL LINE
-        self.configurations.append([0, -1, 1, -1])  # HORIZONTAL LINE
-        self.configurations.append([0, -1, 0, 1])  # EMPTY
+        self.configurations.append([0, 1, 0, -1])  # CROSS                  0
+        self.configurations.append([0, 1, 0, 1])  # VALLEY                  1
+        self.configurations.append([0, -1, 0, -1])  # PEAK                  2
+        self.configurations.append([0, 1, -1, 1])  # VERTICAL LINE          3
+        self.configurations.append([0, -1, 1, -1])  # HORIZONTAL LINE       4
+        self.configurations.append([0, -1, 0, 1])  # EMPTY                  5
 
-    def valid_transition(self, initial_state, state, vertex, config):
-        # Count number of changes. If it's greater than 1, it's not something you can move to.
-        changes = 0
-        if state.grid[vertex[0] - 1][vertex[1]] != initial_state.grid[vertex[0] - 1][vertex[1]]:
-            changes += 1
-        if state.grid[vertex[0] - 1][vertex[1] - 1] != initial_state.grid[vertex[0] - 1][vertex[1] - 1]:
-            changes += 1
-        if state.grid[vertex[0]][vertex[1] - 1] != initial_state.grid[vertex[0]][vertex[1] - 1]:
-            changes += 1
+    def function(self, config):
+        if (config[3]) % 3 == -1:
+            if (config[2] + config[1]) % 3 == 2:
+                return 2
+            elif (config[2] + config[1]) % 3 == 0:
+                return 4
+            else:
+                return 0
+        else:
+            if (config[2] + config[1]) % 3 == 2:
+                return 5
+            elif (config[2] + config[1]) % 3 == 0:
+                return 3
+            else:
+                return 1
 
-        if initial_state.count_edges()[0] == state.count_edges()[0] and initial_state.count_edges()[1] == state.count_edges()[1]:
-            if state.check_validity() and changes <= 1:
-                return True
-
-        return False
-
-    def replace_four(self, initial_state, vertex, config):
-        state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
-
-        x = state.grid[vertex[0]][vertex[1]]
-        state.grid[vertex[0] - 1][vertex[1]] = (x + config[1]) % 3
-        state.grid[vertex[0] - 1][vertex[1] - 1] = (x + config[2]) % 3
-        state.grid[vertex[0]][vertex[1] - 1] = (x + config[3]) % 3
-
-        if self.valid_transition(initial_state, state, vertex, config):
-            return state
-
-        return None
+    def find_config_of_vertex(self, vertex, state):
+        config = list()
+        config.append(0)
+        config.append(state.grid[vertex[0] - 1][vertex[1]] - state.grid[vertex[0]][vertex[1]]) # error is [0, 2, 0, 1]
+        config.append(state.grid[vertex[0] - 1][vertex[1] - 1] - state.grid[vertex[0]][vertex[1]])
+        config.append(state.grid[vertex[0]][vertex[1] - 1] - state.grid[vertex[0]][vertex[1]])
+        return config
 
     def score(self, old_state, new_state, vertex_of_change):
-        return random.randint(0, 5)
+        # We take the entire square, so 9 vertices to consider.
+        new_score = 1
+        x,y = vertex_of_change
+
+        for dx in range(-1, 1):
+            for dy in range(-1, 1):
+                new_score = new_score * self.weights[self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=new_state))]
+
+        old_score = 1
+        x, y = vertex_of_change
+
+        for dx in range(-1, 1):
+            for dy in range(-1, 1):
+                old_score = old_score * self.weights[self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=old_state))]
+
+        ratio = new_score / old_score
+
+        return min(ratio, 1)
+
+    def flip(self, initial_state, vertex, valley):
+        #print("Got to Flip")
+        state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
+
+        if valley:
+            if self.function(self.find_config_of_vertex(vertex, state)) <= 1:
+                state.grid[vertex[0] - 1][vertex[1]] = (state.grid[vertex[0] - 1][vertex[1]] + 1) % 3
+                if state.check_validity() is False:
+                    print("Beginning of Error")
+                    initial_state.draw()
+                    state.draw()
+                    state.draw_GUI("Error")
+                    print(vertex)
+                    raise "Incorrect state made at Flip, Valley"
+                return state
+        else:
+            if self.function(self.find_config_of_vertex(vertex, state)) == 0 or 2:
+                state.grid[vertex[0]][vertex[1] - 1] = (state.grid[vertex[0]][vertex[1] - 1] - 1) % 3
+                if state.check_validity() is False:
+                    print("Beginning of Error")
+                    initial_state.draw()
+                    state.draw()
+                    state.draw_GUI("Error")
+                    print(vertex)
+                    raise "Incorrect state made at Flip, Peak"
+                return state
+
+        raise "This is not a peak or valley."
+
 
     def step(self, initial_state):
-        x = random.randint(1, (initial_state.boundary_size - 1))
-        y = random.randint(1, (initial_state.boundary_size - 1))
+        vertices, codes = initial_state.set_up_GUI()
 
-        vertex = (x,y)
-        valid_colorings = []
+        #print(vertices)
 
-        for config in self.configurations:
-            state = self.replace_four(initial_state, vertex, config)
-            if state is not None:
-                valid_colorings.append(state)
+        vertex = vertices[random.randint(0, (len(vertices) - 1))]
+        while 30 in vertex or 0 in vertex:
+            vertex = vertices[random.randint(0, (len(vertices) - 1))]
+            #print("uhoh...")
+        r = random.random()
+        #r = 0.2
+        #vertex = (27, 3)
 
-        r = random.randint(0, len(valid_colorings) - 1)
-        return valid_colorings[r]
+        if r < 0.5:
+            # If vertex is valley
+            if self.function(self.find_config_of_vertex(vertex, initial_state)) <= 1:
+                # and the bottom of a tower of height 1, then
+                #print("is Valley")
+                if self.function(self.find_config_of_vertex((vertex[0] - 1, vertex[1] + 1), initial_state)) == 5:
+                    R_2 = self.flip(initial_state, vertex, True)
+                    pi = self.score(initial_state, R_2, vertex)
+                    if r <= 0.5 * pi:
+                        return R_2, True
+        else:
+            if self.function(self.find_config_of_vertex(vertex, initial_state)) == 0 or 2:
+                #print("is Peak")
+                if self.function(self.find_config_of_vertex(vertex, initial_state)) == 5:
+                    R_2 = self.flip(initial_state, vertex, False)
+                    pi = self.score(initial_state, R_2, vertex)
+                    if r < 0.5 * pi:
+                        if r >= 1 - pi * 0.5:
+                            return R_2, True
+
+        #print("Never did anything")
+        return initial_state, False
+
+        # index = self.function(self.find_config_of_vertex(vertex, initial_state))
+        # print(vertex)
+        # print(index)
+        #
+        # if index >= 3:
+        #     return initial_state, False
+        #
+        # valid_colorings = []
+        #
+        # for config in self.configurations:
+        #     state = self.replace_four(initial_state, vertex, config)
+        #     if state is not None:
+        #         valid_colorings.append(state)
+        #
+        # if len(valid_colorings) == 1:
+        #     return valid_colorings[0], False  # Is this the error??
+        #
+        # r = random.randint(0, len(valid_colorings) - 1)
+        # return valid_colorings[r], True
 
     def time_travel(self, iterations, initial_state):
         curr_state = initial_state
+        curr_state.draw_GUI("Initial State")
         for i in range(iterations):
             print("Start Iteration " + str(i))
-            curr_state = self.step(curr_state)
-            curr_state.draw()
-            if i % 1 == 0:
-                curr_state.draw_GUI()
+            curr_state, boolean = self.step(curr_state)
+            if boolean:
+                curr_state.draw()
+                curr_state.draw_GUI(i)
+
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = EulerianPathState(sources=[(0, 1), (0, 3), (0,4)], sinks=[(1,5 - 1), (2,5 - 1), (4, 5 - 1)], boundary_size=5)
+eps = EulerianPathState(sources=[(0, 3), (0, 5)], sinks=[(26,30 - 1), (24,30 - 1)], boundary_size=30)  # only works with 5
 #eps.draw()
-eps.draw_GUI()
-mc = MarkovChain()
-mc.time_travel(15, eps)
+#eps.draw_GUI()
+mc = MarkovChain(weights=[1, 1, 1, 1, 1, 1])
+mc.time_travel(1000, eps)
 
