@@ -317,7 +317,7 @@ class MarkovChain:
 
         p = random.randint(0, (len(pink_vertices) - 1))
 
-        pink_vertex = (1,29) #pink_vertices[p]
+        pink_vertex = pink_vertices[p]
         blue_vertex = blue_vertices[p]
         change = False
         next_state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.pink_grid), copy.deepcopy(initial_state.blue_grid))
@@ -353,10 +353,6 @@ class MarkovChain:
                         next_state = R_2
                         change = True
         else:
-            print("peak position")
-            print(self.find_config_of_vertex(pink_vertex, initial_state, True))
-            print(self.function(self.find_config_of_vertex(pink_vertex, initial_state, True)))
-            print("done")
             if self.function(self.find_config_of_vertex(pink_vertex, initial_state, True)) == 0 or self.function(self.find_config_of_vertex(pink_vertex, initial_state, True)) == 2:
                 #print("is Peak")
                 if self.function(self.find_config_of_vertex((pink_vertex[0] + 1, pink_vertex[1] - 1), initial_state, True)) == 5:
@@ -384,7 +380,8 @@ class MarkovChain:
             curr_state, boolean = self.step(curr_state)
             #curr_state.draw()
             if boolean:
-                curr_state.draw_GUI(i)
+                if i == iterations - 10:
+                    curr_state.draw_GUI(i)
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
@@ -392,5 +389,5 @@ eps = EulerianPathState(sources=[(0, 1)], sinks=[(29,30 - 1)], boundary_size=30)
 #eps.draw()
 #eps.draw_GUI("Trail")
 mc = MarkovChain(weights=[1, 1, 1, 1, 1, 1])
-mc.time_travel(1000, eps)
+mc.time_travel(5000, eps)
 
