@@ -226,7 +226,7 @@ class MarkovChain:
         self.configurations.append([0, -1, 0, 1])  # EMPTY                  5
 
     def function(self, config):
-        if (config[3]) % 3 == -1:
+        if (config[3]) % 3 == 2:
             if (config[2] + config[1]) % 3 == 2:
                 return 2
             elif (config[2] + config[1]) % 3 == 0:
@@ -323,37 +323,16 @@ class MarkovChain:
                     if r <= 0.5 * pi:
                         return R_2, True
         else:
-            if self.function(self.find_config_of_vertex(vertex, initial_state)) == 0 or 2:
+            if self.function(self.find_config_of_vertex(vertex, initial_state)) == 0 or self.function(self.find_config_of_vertex(vertex, initial_state)) == 2:
                 #print("is Peak")
-                if self.function(self.find_config_of_vertex(vertex, initial_state)) == 5:
+                if self.function(self.find_config_of_vertex((vertex[0] + 1, vertex[1] - 1), initial_state)) == 5:
                     R_2 = self.flip(initial_state, vertex, False)
                     pi = self.score(initial_state, R_2, vertex)
-                    if r < 0.5 * pi:
-                        if r >= 1 - pi * 0.5:
-                            return R_2, True
+                    if r >= 1 - pi * 0.5:
+                        return R_2, True
 
         #print("Never did anything")
         return initial_state, False
-
-        # index = self.function(self.find_config_of_vertex(vertex, initial_state))
-        # print(vertex)
-        # print(index)
-        #
-        # if index >= 3:
-        #     return initial_state, False
-        #
-        # valid_colorings = []
-        #
-        # for config in self.configurations:
-        #     state = self.replace_four(initial_state, vertex, config)
-        #     if state is not None:
-        #         valid_colorings.append(state)
-        #
-        # if len(valid_colorings) == 1:
-        #     return valid_colorings[0], False  # Is this the error??
-        #
-        # r = random.randint(0, len(valid_colorings) - 1)
-        # return valid_colorings[r], True
 
     def time_travel(self, iterations, initial_state):
         curr_state = initial_state
