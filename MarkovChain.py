@@ -215,6 +215,7 @@ class MarkovChain:
 
     def __init__(self, weights=[1, 1, 1, 1, 1, 1]):
         self.weights = [(w / np.sum(weights)) for w in weights]
+        self.weights += [1]
         self.configurations = []
 
         # Going in a counter clockwise direction through the four boxes
@@ -226,6 +227,9 @@ class MarkovChain:
         self.configurations.append([0, -1, 0, 1])  # EMPTY                  5
 
     def function(self, config):
+        if not config:
+            return 6
+
         if (config[3]) % 3 == 2:
             if (config[2] + config[1]) % 3 == 2:
                 return 2
@@ -242,6 +246,9 @@ class MarkovChain:
                 return 1
 
     def find_config_of_vertex(self, vertex, state):
+        if vertex[0] >= state.boundary_size or vertex[1] >= state.boundary_size:
+            return False
+
         config = list()
         config.append(0)
         config.append(state.grid[vertex[0] - 1][vertex[1]] - state.grid[vertex[0]][vertex[1]]) # error is [0, 2, 0, 1]
@@ -252,18 +259,20 @@ class MarkovChain:
     def score(self, old_state, new_state, vertex_of_change):
         # We take the entire square, so 9 vertices to consider.
         new_score = 1
-        x,y = vertex_of_change
+        x, y = vertex_of_change
 
-        for dx in range(-1, 1):
-            for dy in range(-1, 1):
-                new_score = new_score * self.weights[self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=new_state))]
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                new_score = new_score * self.weights[
+                    self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=new_state))]
 
         old_score = 1
         x, y = vertex_of_change
 
-        for dx in range(-1, 1):
-            for dy in range(-1, 1):
-                old_score = old_score * self.weights[self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=old_state))]
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                old_score = old_score * self.weights[
+                    self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=old_state))]
 
         ratio = new_score / old_score
 
@@ -309,8 +318,6 @@ class MarkovChain:
             vertex = vertices[random.randint(0, (len(vertices) - 1))]
             #print("uhoh...")
         r = random.random()
-        #r = 0.2
-        #vertex = (27, 3)
 
         if r < 0.5:
             # If vertex is valley
@@ -341,14 +348,14 @@ class MarkovChain:
             print("Start Iteration " + str(i))
             curr_state, boolean = self.step(curr_state)
             if boolean:
-                curr_state.draw()
-                curr_state.draw_GUI(i)
+                if i >= 4950:
+                    curr_state.draw_GUI(i)
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
 eps = EulerianPathState(sources=[(0, 3), (0, 5)], sinks=[(26,30 - 1), (24,30 - 1)], boundary_size=30)  # only works with 5
 #eps.draw()
 #eps.draw_GUI()
-mc = MarkovChain(weights=[1, 1, 1, 1, 1, 1])
-mc.time_travel(1000, eps)
+mc = MarkovChain(weights=[2, 1, 1, 2, 2, 2])
+mc.time_travel(5000, eps)
 

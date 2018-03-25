@@ -36,7 +36,7 @@ class EulerianPathState:
 
         for x in range(self.boundary_size):
             for y in range(1, self.boundary_size):
-                if x <= 28:
+                if x <= self.boundary_size - 2:
                     if y == 1:
                         self.blue_grid[x][y] = (self.blue_grid[x][y - 1] + 1) % 3
                     else:
@@ -56,11 +56,11 @@ class EulerianPathState:
                     else:
                         self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
                 else:
-                    if y == 29:
+                    if y == self.boundary_size - 1:
                         self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
                     else:
                         self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
-                    if x == 29 and y == 29:
+                    if x == self.boundary_size - 1 and y == self.boundary_size - 1:
                         self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
     def check_validity(self):
         for x in range(1, self.boundary_size - 1):
@@ -192,6 +192,7 @@ class MarkovChain:
 
     def __init__(self, weights=[1, 1, 1, 1, 1, 1]):
         self.weights = [(w / np.sum(weights)) for w in weights]
+        self.weights += [1]  # DUMMY VALUE...
         self.configurations = []
 
         # Going in a counter clockwise direction through the four boxes
@@ -204,7 +205,7 @@ class MarkovChain:
 
     def function(self, config):
         if not config:
-            return 100
+            return 6
 
         if (config[3]) % 3 == 2: # CAUTION
             if (config[2] + config[1]) % 3 == 2:
@@ -222,7 +223,7 @@ class MarkovChain:
                 return 1
 
     def find_config_of_vertex(self, vertex, state, pink):
-        if vertex[0] == 30 or vertex[1] == 30:
+        if vertex[0] >= state.boundary_size or vertex[1] >= state.boundary_size:
             return False
 
         config = list()
@@ -242,17 +243,17 @@ class MarkovChain:
     def score(self, old_state, new_state, vertex_of_change, pink):
         # We take the entire square, so 9 vertices to consider.
         new_score = 1
-        x,y = vertex_of_change
+        x, y = vertex_of_change
 
-        for dx in range(-1, 1):
-            for dy in range(-1, 1):
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
                 new_score = new_score * self.weights[self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=new_state, pink=pink))]
 
         old_score = 1
         x, y = vertex_of_change
 
-        for dx in range(-1, 1):
-            for dy in range(-1, 1):
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
                 old_score = old_score * self.weights[self.function(self.find_config_of_vertex(vertex=(x + dx, y + dy), state=old_state, pink=pink))]
 
         ratio = new_score / old_score
@@ -322,7 +323,7 @@ class MarkovChain:
         change = False
         next_state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.pink_grid), copy.deepcopy(initial_state.blue_grid))
 
-        while 30 in pink_vertex or 0 in pink_vertex or 30 in blue_vertex or 0 in blue_vertex:
+        while initial_state.boundary_size in pink_vertex or 0 in pink_vertex or initial_state.boundary_size in blue_vertex or 0 in blue_vertex:
             p = random.randint(0, (len(pink_vertices) - 1))
             pink_vertex = pink_vertices[p]
             blue_vertex = blue_vertices[p]#print("uhoh...")
@@ -330,6 +331,8 @@ class MarkovChain:
         r = random.random()
 
         ### Do things with pink vertex // valley valley peak peak
+        print(pink_vertex)
+        print(blue_vertex)
 
         if r < 0.5:
             # If vertex is valley
@@ -338,6 +341,7 @@ class MarkovChain:
                 if self.function(self.find_config_of_vertex((pink_vertex[0] - 1, pink_vertex[1] + 1), initial_state, True)) == 5:
                     R_2 = self.flip(initial_state, pink_vertex, True, True)
                     pi = self.score(initial_state, R_2, pink_vertex, True)
+                    print("Pink score: " + str(pi))
                     if r <= 0.5 * pi:
                         next_state = R_2
                         change = True
@@ -349,6 +353,7 @@ class MarkovChain:
                 if self.function(self.find_config_of_vertex((blue_vertex[0] - 1, blue_vertex[1] + 1), next_state, False)) == 5:
                     R_2 = self.flip(next_state, blue_vertex, True, False)
                     pi = self.score(next_state, R_2, blue_vertex, False)
+                    print("Blue score: " + str(pi))
                     if r <= 0.5 * pi:
                         next_state = R_2
                         change = True
@@ -358,6 +363,7 @@ class MarkovChain:
                 if self.function(self.find_config_of_vertex((pink_vertex[0] + 1, pink_vertex[1] - 1), initial_state, True)) == 5:
                     R_2 = self.flip(initial_state, pink_vertex, False, True)
                     pi = self.score(initial_state, R_2, pink_vertex, True)
+                    print("Pink score: " + str(pi))
                     if r >= 1 - pi * 0.5:
                         next_state = R_2
                         change = True
@@ -366,6 +372,7 @@ class MarkovChain:
                 if self.function(self.find_config_of_vertex((blue_vertex[0] + 1, blue_vertex[1] - 1), next_state, False)) == 5:
                     R_2 = self.flip(next_state, blue_vertex, False, False)
                     pi = self.score(next_state, R_2, blue_vertex, False)
+                    print("Blue score: " + str(pi))
                     if r >= 1 - pi * 0.5:
                         next_state = R_2
                         change = True
@@ -380,14 +387,14 @@ class MarkovChain:
             curr_state, boolean = self.step(curr_state)
             #curr_state.draw()
             if boolean:
-                if i == iterations - 10:
+                if i >= (iterations - 100):
                     curr_state.draw_GUI(i)
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = EulerianPathState(sources=[(0, 1)], sinks=[(29,30 - 1)], boundary_size=30)  # only works with 5
+eps = EulerianPathState(sources=[(0, 1)], sinks=[(29,30 - 1)], boundary_size=15)  # only works with 5
 #eps.draw()
 #eps.draw_GUI("Trail")
-mc = MarkovChain(weights=[1, 1, 1, 1, 1, 1])
-mc.time_travel(5000, eps)
+mc = MarkovChain(weights=[2, 1, 1, 2, 2, 2])
+mc.time_travel(40000, eps)
 
