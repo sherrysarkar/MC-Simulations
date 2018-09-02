@@ -19,7 +19,7 @@ class EulerianPathState:
         self.pink_grid = []
         self.blue_grid = []
         if len(pinkgrid) == 0:
-            self.generate_paths()
+            self.generate_paths_2()
         else:
             self.pink_grid = pinkgrid
             self.blue_grid = bluegrid
@@ -62,6 +62,61 @@ class EulerianPathState:
                         self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
                     if x == self.boundary_size - 1 and y == self.boundary_size - 1:
                         self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
+
+    def generate_paths_2(self):
+        self.pink_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+        self.blue_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+
+        # What are our two horizontal lines? y = 3 and y = 5 (hard code for now)
+
+        # Do the bottom row first.
+        for x in range(1, self.boundary_size):
+            self.blue_grid[x][0] = (self.blue_grid[x - 1][0] + 1) % 3
+
+        for x in range(self.boundary_size):
+            for y in range(1, self.boundary_size):
+                if x <= self.boundary_size - 2 and x > self.boundary_size - 3:
+                    if y == 1:
+                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] + 1) % 3
+                    else:
+                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
+                elif x <= self.boundary_size - 3:
+                    if y == 2 or y == 1:
+                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] + 1) % 3
+                    else:
+                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
+                else:
+                    self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
+
+        # Next, the pink stuff.
+        for x in range(1, self.boundary_size):
+            self.pink_grid[x][0] = (self.pink_grid[x - 1][0] + 1) % 3
+
+        for x in range(self.boundary_size):
+            for y in range(1, self.boundary_size):  # PINK NOT DONE YET. 
+                if x == 0:
+                    if y == 1 or y == 2:
+                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
+                    else:
+                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
+                elif x == 1:
+                    if y == 2 or y == self.boundary_size - 1:
+                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
+                    else:
+                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
+                elif x >= 2 and x <= self.boundary_size - 3:
+                    if y == self.boundary_size - 1 or y == self.boundary_size - 2:
+                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
+                    else:
+                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
+                elif x >= self.boundary_size - 2:
+                    if y == self.boundary_size - 1:
+                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
+                    else:
+                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] + 1) % 3
+                    if x == self.boundary_size - 1 and y == self.boundary_size - 2:
+                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
+
     def check_validity(self):
         for x in range(1, self.boundary_size - 1):
             for y in range(1, self.boundary_size - 1):
@@ -277,7 +332,7 @@ class MarkovChain:
                         raise "Incorrect state made at Flip, Valley"
                     return state
             else:
-                if self.function(self.find_config_of_vertex(vertex, state, pink)) == 0 or 2:
+                if self.function(self.find_config_of_vertex(vertex, state, pink)) == 0 or self.function(self.find_config_of_vertex(vertex, state, pink)) == 2:
                     state.pink_grid[vertex[0]][vertex[1] - 1] = (state.pink_grid[vertex[0]][vertex[1] - 1] - 1) % 3
                     if state.check_validity() is False:
                         print("Beginning of Error")
@@ -377,24 +432,37 @@ class MarkovChain:
                         next_state = R_2
                         change = True
 
-        return next_state, change
+        pink_set = set(pink_vertices)
+        blue_set = set(blue_vertices)
+        isCoupled = False
+
+        if pink_set == blue_set:
+            isCoupled = True
+
+        return next_state, change, isCoupled
 
     def time_travel(self, iterations, initial_state):
         curr_state = initial_state
         curr_state.draw_GUI("Initial State")
-        for i in range(iterations):
+
+        i = 0
+        isCoupled = False
+        while i < iterations and not isCoupled:
             print("Start Iteration " + str(i))
-            curr_state, boolean = self.step(curr_state)
-            #curr_state.draw()
+            curr_state, boolean, isCoupled = self.step(curr_state)
             if boolean:
                 if i >= (iterations - 100):
                     curr_state.draw_GUI(i)
+            i = i + 1
+        print("Time it took to couple : " + str(i))
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = EulerianPathState(sources=[(0, 1)], sinks=[(29,30 - 1)], boundary_size=15)  # only works with 5
+eps = EulerianPathState(sources=[(0, 1)], sinks=[(29,30 - 1)], boundary_size=30)  # only works with 5
 #eps.draw()
 #eps.draw_GUI("Trail")
-mc = MarkovChain(weights=[2, 1, 1, 2, 2, 2])
-mc.time_travel(40000, eps)
+a = 0.5
+b = 0.5
+mc = MarkovChain(weights=[a, 1, 1, b, b, a])
+mc.time_travel(1000, eps)
 

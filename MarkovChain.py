@@ -294,7 +294,7 @@ class MarkovChain:
                     raise "Incorrect state made at Flip, Valley"
                 return state
         else:
-            if self.function(self.find_config_of_vertex(vertex, state)) == 0 or 2:
+            if self.function(self.find_config_of_vertex(vertex, state)) == 0 or self.function(self.find_config_of_vertex(vertex, state)) == 2:
                 state.grid[vertex[0]][vertex[1] - 1] = (state.grid[vertex[0]][vertex[1] - 1] - 1) % 3
                 if state.check_validity() is False:
                     print("Beginning of Error")
@@ -348,14 +348,14 @@ class MarkovChain:
             print("Start Iteration " + str(i))
             curr_state, boolean = self.step(curr_state)
             if boolean:
-                if i >= 4950:
-                    curr_state.draw_GUI(i)
+                #if i >= 4950:
+                curr_state.draw_GUI(i)
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
 eps = EulerianPathState(sources=[(0, 3), (0, 5)], sinks=[(26,30 - 1), (24,30 - 1)], boundary_size=30)  # only works with 5
 #eps.draw()
 #eps.draw_GUI()
-mc = MarkovChain(weights=[2, 1, 1, 2, 2, 2])
-mc.time_travel(5000, eps)
+mc = MarkovChain(weights=[1, 1, 1, 1, 1, 1])
+mc.time_travel(1000, eps)
 
