@@ -19,103 +19,15 @@ class EulerianPathState:
         self.pink_grid = []
         self.blue_grid = []
         if len(pinkgrid) == 0:
-            self.generate_paths_2()
+            self.generate_unique_minimum()
         else:
             self.pink_grid = pinkgrid
             self.blue_grid = bluegrid
 
-    def generate_paths(self):
+    def generate_unique_minimum(self):
         self.pink_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
         self.blue_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
 
-        # What are our two horizontal lines? y = 3 and y = 5 (hard code for now)
-
-        # Do the bottom row first.
-        for x in range(1, self.boundary_size):
-            self.blue_grid[x][0] = (self.blue_grid[x - 1][0] + 1) % 3
-
-        for x in range(self.boundary_size):
-            for y in range(1, self.boundary_size):
-                if x <= self.boundary_size - 2:
-                    if y == 1:
-                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
-                else:
-                    self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
-
-        # Next, the pink stuff.
-        for x in range(1, self.boundary_size):
-            self.pink_grid[x][0] = (self.pink_grid[x - 1][0] + 1) % 3
-
-        for x in range(self.boundary_size):
-            for y in range(1, self.boundary_size):
-                if x == 0:
-                    if y == 1:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
-                else:
-                    if y == self.boundary_size - 1:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
-                    if x == self.boundary_size - 1 and y == self.boundary_size - 1:
-                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
-
-    def generate_paths_2(self):
-        self.pink_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
-        self.blue_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
-
-        # What are our two horizontal lines? y = 3 and y = 5 (hard code for now)
-
-        # Do the bottom row first.
-        for x in range(1, self.boundary_size):
-            self.blue_grid[x][0] = (self.blue_grid[x - 1][0] + 1) % 3
-
-        for x in range(self.boundary_size):
-            for y in range(1, self.boundary_size):
-                if x <= self.boundary_size - 2 and x > self.boundary_size - 3:
-                    if y == 1:
-                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
-                elif x <= self.boundary_size - 3:
-                    if y == 2 or y == 1:
-                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
-                else:
-                    self.blue_grid[x][y] = (self.blue_grid[x][y - 1] - 1) % 3
-
-        # Next, the pink stuff.
-        for x in range(1, self.boundary_size):
-            self.pink_grid[x][0] = (self.pink_grid[x - 1][0] + 1) % 3
-
-        for x in range(self.boundary_size):
-            for y in range(1, self.boundary_size):  # PINK NOT DONE YET. 
-                if x == 0:
-                    if y == 1 or y == 2:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
-                elif x == 1:
-                    if y == 2 or y == self.boundary_size - 1:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
-                elif x >= 2 and x <= self.boundary_size - 3:
-                    if y == self.boundary_size - 1 or y == self.boundary_size - 2:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] + 1) % 3
-                    else:
-                        self.pink_grid[x][y] = (self.pink_grid[x][y - 1] - 1) % 3
-                elif x >= self.boundary_size - 2:
-                    if y == self.boundary_size - 1:
-                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
-                    else:
-                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] + 1) % 3
-                    if x == self.boundary_size - 1 and y == self.boundary_size - 2:
-                        self.pink_grid[x][y] = (self.pink_grid[x - 1][y] - 1) % 3
 
     def check_validity(self):
         for x in range(1, self.boundary_size - 1):

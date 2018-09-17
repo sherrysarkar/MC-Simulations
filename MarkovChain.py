@@ -18,74 +18,93 @@ class EulerianPathState:
         # Let each face be uniquely represented by it's lowest left most corner.
         self.grid = []
         if len(grid) == 0:
-            self.generate_paths()
+            self.generate_unique_minimum()
         else:
             self.grid = grid
 
-    def small_generate_paths(self):
-        # generate a valid Eulerian Routing
+    def generate_unique_minimum_edges(self):
+        #modified_sources = [(x, -y) for (x, y) in self.sources]  # y turned to -y to help sort.
+        #modified_sinks = [(x, -y) for (x, y) in self.sinks]
+
+        sorted_sources = sorted(self.sources)
+        sorted_sinks = sorted(self.sinks)
+
+        #modified_sources = [(x, -y) for (x, y) in sorted_sources]  # y turned to -y to help sort.
+        #modified_sinks = [(x, -y) for (x, y) in sorted_sinks]
+
+        print(sorted_sources)
+        print(sorted_sinks)  # SORTED NEEDS FIXING.
+        print()
+
+        paired_sources_sinks = list(zip(sorted_sources, sorted_sinks))
+        boundary = list()
+        taken = list()
+
+        for i in range(self.boundary_size):
+            sink_y = [y for (x,y) in self.sinks]
+            sink_x = [x for (x,y) in self.sinks]
+            if i not in sink_y:
+                boundary.append(((self.boundary_size - 1, i), (self.boundary_size, i)))
+            if i not in sink_x:
+                boundary.append(((i, self.boundary_size - 1), (i, self.boundary_size)))
+
+        print(boundary)
+        for i in range(len(paired_sources_sinks)):
+            particle = paired_sources_sinks[i][0]  # Start at the source
+            end = paired_sources_sinks[i][1]
+            #print(paired_sources_sinks[i])
+
+            while particle != end:
+                if particle[0] < end[0]:  # Horizontal movement case
+                    edge = ((particle[0], particle[1]), (particle[0] + 1, particle[1]))
+                    #print(edge)
+                    if edge not in taken and edge not in boundary:
+                        particle = edge[1]
+                        taken.append(edge)
+                    elif particle[1] < end[1]:  # Vertical movement case
+                        edge = ((particle[0], particle[1]), (particle[0], particle[1] + 1))
+                        #print(edge)
+                        #print("Taken: ", taken)
+                        if edge not in taken and edge not in boundary:
+                            particle = edge[1]
+                            taken.append(edge)
+                else:
+                    if particle != end:  # If the particle isn't before the sink, where is it?
+                        print("Particle out of range!")
+                        return "Error."
+                #print(particle)
+        return taken
+
+    # Credit to Daniel Hathcock for the beautiful algorithm
+    def generate_unique_minimum(self):
+        edges = self.generate_unique_minimum_edges()
+        print(edges)
         self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+        gradient_grid = [[-1 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
 
-        # First, go around the boundary, with sources then sinks.
-        for y in range(1, self.boundary_size):
-            if (0, y) in self.sources:
-                self.grid[0][y] = (self.grid[0][y - 1] + 1) % 3
+        for x in range(self.boundary_size):  # The correct initialization.
+            gradient_grid[x][0] = 1
+
+        for edge in edges:
+            if edge[1][0] - edge[0][0] == 1:  # If it is a horizontal transition.
+                x = edge[0][0]
+                y = edge[0][1]
+                gradient_grid[x][y] = 1
+            elif edge[1][1] - edge[0][1] == 1:  # If it is a vertical transition.
+                x = edge[0][0]
+                y = edge[0][1]
+                if y == 0:  # It's one of the bottom edges.
+                    gradient_grid[x][0] = -1
             else:
-                self.grid[0][y] = (self.grid[0][y - 1] - 1) % 3
+                raise "Edge Transitions Error"
 
         for x in range(1, self.boundary_size):
-            if (x, self.boundary_size - 1) in self.sinks:
-                self.grid[x][self.boundary_size - 1] = (self.grid[x - 1][self.boundary_size - 1] - 1) % 3
-            else:
-                self.grid[x][self.boundary_size - 1] = (self.grid[x - 1][self.boundary_size - 1] + 1) % 3
-
-        # Rest of boundary
-
-        for x in range(1, self.boundary_size):
-            self.grid[x][0] = (self.grid[x - 1][0] + 1) % 3
-
-        for y in range(1, self.boundary_size):
-            self.grid[self.boundary_size - 1][y] = (self.grid[self.boundary_size - 1][y - 1] - 1) % 3
-
-        # We can fill in the rest.
-        self.draw()
-
-        while self.check_validity() is not True:
-            print("Here!")
-            for x in range(1, self.boundary_size - 1):
-                for y in range(1, self.boundary_size - 1):
-                    self.grid[x][y] = random.randint(0,2)
-                    self.draw()
-
-        # for x in range(1, self.boundary_size - 1):
-        #     for y in range(1, self.boundary_size - 1):
-        #         grid[x][y] = (grid[x][y - 1] - 1) % 3
-        #
-        # grid[1][3] = 0 # Hardcode cause fuck it. // Usual Method
-
-    def generate_paths(self):
-        self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
-
-        # What are our two horizontal lines? y = 3 and y = 5 (hard code for now)
-
-        # Do the base line first.
-        for x in range(1, self.boundary_size):
-            self.grid[x][0] = (self.grid[x - 1][0] + 1) % 3
+            self.grid[x][0] = (self.grid[x - 1][0] + gradient_grid[x][0]) % 3
 
         for x in range(self.boundary_size):
             for y in range(1, self.boundary_size):
-                if x <= 24:
-                    if y == 3 or y == 5:
-                        self.grid[x][y] = (self.grid[x][y - 1] + 1) % 3
-                    else:
-                        self.grid[x][y] = (self.grid[x][y - 1] - 1) % 3
-                elif x <= 26:
-                    if y== 3:
-                        self.grid[x][y] = (self.grid[x][y - 1] + 1) % 3
-                    else:
-                        self.grid[x][y] = (self.grid[x][y - 1] - 1) % 3
-                else:
-                    self.grid[x][y] = (self.grid[x][y - 1] - 1) % 3
+                self.grid[x][y] = (self.grid[x][y - 1] + gradient_grid[x][y]) % 3
+
 
     def count_edges(self):
         vertices = []
@@ -157,7 +176,7 @@ class EulerianPathState:
         vertices = []
         codes = []
         # First, write in horizontal edges
-        for x in range(self.boundary_size - 1):  # Are all these -1's right? Somehow, I doubt it...
+        for x in range(self.boundary_size):  # Are all these -1's right? Somehow, I doubt it...
             for y in range(self.boundary_size - 1):
                 if (self.grid[x][y] + 1) % 3 == self.grid[x][y + 1]:
                     vertices += [(x, y + 1), (x + 1, y + 1)]
@@ -338,7 +357,6 @@ class MarkovChain:
                     if r >= 1 - pi * 0.5:
                         return R_2, True
 
-        #print("Never did anything")
         return initial_state, False
 
     def time_travel(self, iterations, initial_state):
@@ -353,9 +371,7 @@ class MarkovChain:
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = EulerianPathState(sources=[(0, 3), (0, 5)], sinks=[(26,30 - 1), (24,30 - 1)], boundary_size=30)  # only works with 5
-#eps.draw()
-#eps.draw_GUI()
-mc = MarkovChain(weights=[1, 1, 1, 1, 1, 1])
-mc.time_travel(1000, eps)
+eps = EulerianPathState(sources=[(0, 3), (0, 4)], sinks=[(10,8), (10,5)], boundary_size=10)  # only works with 5
+eps.draw()
+eps.draw_GUI(0)
 
