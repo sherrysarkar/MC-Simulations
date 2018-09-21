@@ -13,7 +13,7 @@ class EulerianPathState:
             raise Exception("Unequal number of sources and sinks.")
         self.sources = sources
         self.sinks = sinks
-        self.boundary_size = boundary_size
+        self.boundary_size = boundary_size  # If boundary size is 5, the x coordinates go up to 4.
 
         # Let each face be uniquely represented by it's lowest left most corner.
         self.grid = []
@@ -48,31 +48,44 @@ class EulerianPathState:
             if i not in sink_x:
                 boundary.append(((i, self.boundary_size - 1), (i, self.boundary_size)))
 
-        print(boundary)
+        vertex_taken = [[0 for j in range(self.boundary_size + 1)] for i in range(self.boundary_size + 1)]
+        for edge in boundary:
+            first = edge[0]
+            second = edge[1]
+            vertex_taken[first[0]][first[1]] += 1
+            vertex_taken[second[0]][second[1]] += 1
+
         for i in range(len(paired_sources_sinks)):
+            print(paired_sources_sinks[i][0])  # TODO: The bug is the fact that both 2 and 3 might be invalid. No wait, nested... shit.
             particle = paired_sources_sinks[i][0]  # Start at the source
             end = paired_sources_sinks[i][1]
-            #print(paired_sources_sinks[i])
 
             while particle != end:
+                #print(particle)
                 if particle[0] < end[0]:  # Horizontal movement case
                     edge = ((particle[0], particle[1]), (particle[0] + 1, particle[1]))
-                    #print(edge)
-                    if edge not in taken and edge not in boundary:
-                        particle = edge[1]
+                    n_v = (edge[1][0], edge[1][1])
+
+                    if edge not in taken and edge not in boundary and vertex_taken[n_v[0]][n_v[1]] < 2:
+                        vertex_taken[particle[0]][particle[1]] += 1
+                        vertex_taken[n_v[0]][n_v[1]] += 1
+                        particle = n_v  # Success in taking point.
                         taken.append(edge)
+
                     elif particle[1] < end[1]:  # Vertical movement case
                         edge = ((particle[0], particle[1]), (particle[0], particle[1] + 1))
-                        #print(edge)
-                        #print("Taken: ", taken)
-                        if edge not in taken and edge not in boundary:
-                            particle = edge[1]
+                        n_v = (edge[1][0], edge[1][1])
+                        if edge not in taken and edge not in boundary and vertex_taken[n_v[0]][n_v[1]] < 2:
+                            vertex_taken[particle[0]][particle[1]] += 1
+                            vertex_taken[n_v[0]][n_v[1]] += 1
+                            particle = n_v  # Success in taking point
                             taken.append(edge)
+
                 else:
                     if particle != end:  # If the particle isn't before the sink, where is it?
                         print("Particle out of range!")
                         return "Error."
-                #print(particle)
+
         return taken
 
     # Credit to Daniel Hathcock for the beautiful algorithm
@@ -326,8 +339,7 @@ class MarkovChain:
 
         raise "This is not a peak or valley."
 
-
-    def step(self, initial_state):
+    def step(self, initial_state):  # Should be EPS state.
         vertices, codes = initial_state.set_up_GUI()
 
         #print(vertices)
@@ -366,12 +378,12 @@ class MarkovChain:
             print("Start Iteration " + str(i))
             curr_state, boolean = self.step(curr_state)
             if boolean:
-                #if i >= 4950:
-                curr_state.draw_GUI(i)
+                if i >= 4950 and i <= 5000:
+                    curr_state.draw_GUI(i)
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = EulerianPathState(sources=[(0, 3), (0, 4)], sinks=[(10,8), (10,5)], boundary_size=10)  # only works with 5
+eps = EulerianPathState(sources=[(0, 3), (0, 4), (0, 10)], sinks=[(100,49), (100,50), (100, 28)], boundary_size=100)
 eps.draw()
 eps.draw_GUI(0)
 
