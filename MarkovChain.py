@@ -33,7 +33,7 @@ class EulerianPathState:
         #modified_sinks = [(x, -y) for (x, y) in sorted_sinks]
 
         print(sorted_sources)
-        print(sorted_sinks)  # SORTED NEEDS FIXING.
+        print(sorted_sinks)  # TODO: SORTED NEEDS FIXING.
         print()
 
         paired_sources_sinks = list(zip(sorted_sources, sorted_sinks))
