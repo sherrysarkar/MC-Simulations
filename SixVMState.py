@@ -19,62 +19,48 @@ class SixVMState:
             self.grid = grid
 
     def generate_unique_minimum_edges(self):
-        #modified_sources = [(x, -y) for (x, y) in self.sources]  # y turned to -y to help sort.
-        #modified_sinks = [(x, -y) for (x, y) in self.sinks]
 
+        # TODO: SORTED NEEDS FIXING.
         sorted_sources = sorted(self.sources)
         sorted_sinks = sorted(self.sinks)
 
-        #modified_sources = [(x, -y) for (x, y) in sorted_sources]  # y turned to -y to help sort.
-        #modified_sinks = [(x, -y) for (x, y) in sorted_sinks]
-
-        print(sorted_sources)
-        print(sorted_sinks)  # TODO: SORTED NEEDS FIXING.
-        print()
-
         paired_sources_sinks = list(zip(sorted_sources, sorted_sinks))
-        boundary = list()
-        taken = list()
+        taken = list()  # The edges of the actual paths. This gets returned.
+        occupied_vertices = [[0 for j in range(self.boundary_size + 1)] for i in range(self.boundary_size + 1)]
 
-        for i in range(self.boundary_size):
-            sink_y = [y for (x,y) in self.sinks]
-            sink_x = [x for (x,y) in self.sinks]
-            if i not in sink_y:
-                boundary.append(((self.boundary_size - 1, i), (self.boundary_size, i)))
-            if i not in sink_x:
-                boundary.append(((i, self.boundary_size - 1), (i, self.boundary_size)))
-
-        vertex_taken = [[0 for j in range(self.boundary_size + 1)] for i in range(self.boundary_size + 1)]
-        for edge in boundary:
-            first = edge[0]
-            second = edge[1]
-            vertex_taken[first[0]][first[1]] += 1
-            vertex_taken[second[0]][second[1]] += 1
+        for i in range(self.boundary_size + 1):
+            if (self.boundary_size, i) not in self.sinks:
+                occupied_vertices[self.boundary_size][i] = 5
 
         for i in range(len(paired_sources_sinks)):
-            print(paired_sources_sinks[i][0])  # TODO: The bug is the fact that both 2 and 3 might be invalid. No wait, nested... shit.
             particle = paired_sources_sinks[i][0]  # Start at the source
             end = paired_sources_sinks[i][1]
 
             while particle != end:
+                print(particle)
                 if particle[0] < end[0]:  # Horizontal movement case
                     edge = ((particle[0], particle[1]), (particle[0] + 1, particle[1]))
                     n_v = (edge[1][0], edge[1][1])
 
-                    if edge not in taken and edge not in boundary and vertex_taken[n_v[0]][n_v[1]] < 2:
-                        vertex_taken[particle[0]][particle[1]] += 1
-                        vertex_taken[n_v[0]][n_v[1]] += 1
+                    if edge not in taken and occupied_vertices[n_v[0]][n_v[1]] != 5:
+                        # TODO: Finite State machine doesn't capture states right...
+                        occupied_vertices[particle[0]][particle[1]] = self.finite_state_machine(occupied_vertices[particle[0]][particle[1]], "h")
                         particle = n_v  # Success in taking point.
+                        occupied_vertices[particle[0]][particle[1]] = 0
                         taken.append(edge)
 
                     elif particle[1] < end[1]:  # Vertical movement case
                         edge = ((particle[0], particle[1]), (particle[0], particle[1] + 1))
                         n_v = (edge[1][0], edge[1][1])
-                        if edge not in taken and edge not in boundary and vertex_taken[n_v[0]][n_v[1]] < 2:
-                            vertex_taken[particle[0]][particle[1]] += 1
-                            vertex_taken[n_v[0]][n_v[1]] += 1
+
+                        if edge not in taken:
+                            occupied_vertices[particle[0]][particle[1]] = self.finite_state_machine(
+                                occupied_vertices[particle[0]][particle[1]], "v")
                             particle = n_v  # Success in taking point
+                            occupied_vertices[particle[0]][particle[1]] = 3
                             taken.append(edge)
+                        else:
+                            print("Something weird has happened...")
 
                 else:
                     if particle != end:  # If the particle isn't before the sink, where is it?
@@ -113,6 +99,21 @@ class SixVMState:
             for y in range(1, self.boundary_size):
                 self.grid[x][y] = (self.grid[x][y - 1] + gradient_grid[x][y]) % 3
 
+# Helper Methods
+
+    def finite_state_machine(self, state, action):
+        if state == 0:
+            if action == "h":
+                return 1
+            else:
+                return 2
+        elif state == 3:
+            if action == "h":
+                return 4
+            else:
+                return 5
+        else:
+            return "Error"
 
     def count_edges(self):
         vertices = []

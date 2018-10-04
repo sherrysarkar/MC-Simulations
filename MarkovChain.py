@@ -72,7 +72,7 @@ class MarkovChain:
 
     def flip(self, initial_state, vertex, valley):
         #print("Got to Flip")
-        state = EulerianPathState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
+        state = SixVMState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
 
         if valley:
             if self.function(self.find_config_of_vertex(vertex, state)) <= 1:
@@ -138,14 +138,14 @@ class MarkovChain:
             print("Start Iteration " + str(i))
             curr_state, boolean = self.step(curr_state)
             if boolean:
-                if i >= 950 and i <= 1000:
+                if i >= iterations - 100 and i <= iterations:
                     curr_state.draw_GUI(i)
 
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = SixVMState(sources=[(0, 3), (0, 4), (0, 10)], sinks=[(100,49), (100,50), (100, 28)], boundary_size=100)
+eps = SixVMState(sources=[(0, 3), (0, 4), (0, 10), (0, 40)], sinks=[(100,51), (100,50), (100, 70), (100, 90)], boundary_size=100)
 eps.draw()
-eps.draw_GUI(0)
-#mc = MarkovChain()
-#mc.time_travel(1500, eps)
+#eps.draw_GUI(0)
+mc = MarkovChain()
+mc.time_travel(20000, eps)
 
