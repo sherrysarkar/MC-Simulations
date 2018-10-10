@@ -24,9 +24,104 @@ class EulerianPathState:
             self.pink_grid = pinkgrid
             self.blue_grid = bluegrid
 
+    def generate_unique_minimum_edges(self):
+
+        # TODO: SORTED NEEDS FIXING.
+        sorted_sources = sorted(self.sources)
+        sorted_sinks = sorted(self.sinks)
+
+        paired_sources_sinks = list(zip(sorted_sources, sorted_sinks))
+        taken = list()  # The edges of the actual paths. This gets returned.
+        occupied_vertices = [[0 for j in range(self.boundary_size + 1)] for i in range(self.boundary_size + 1)]
+
+        for i in range(self.boundary_size + 1):
+            if (self.boundary_size, i) not in self.sinks:
+                occupied_vertices[self.boundary_size][i] = 5
+
+        for i in range(len(paired_sources_sinks)):
+            particle = paired_sources_sinks[i][0]  # Start at the source
+            end = paired_sources_sinks[i][1]
+
+            while particle != end:
+                print(particle)
+                if particle[0] < end[0]:  # Horizontal movement case
+                    edge = ((particle[0], particle[1]), (particle[0] + 1, particle[1]))
+                    n_v = (edge[1][0], edge[1][1])
+
+                    if edge not in taken and occupied_vertices[n_v[0]][n_v[1]] != 5:
+                        # TODO: Finite State machine doesn't capture states right...
+                        occupied_vertices[particle[0]][particle[1]] = self.finite_state_machine(
+                            occupied_vertices[particle[0]][particle[1]], "h")
+                        particle = n_v  # Success in taking point.
+                        occupied_vertices[particle[0]][particle[1]] = 0
+                        taken.append(edge)
+
+                    elif particle[1] < end[1]:  # Vertical movement case
+                        edge = ((particle[0], particle[1]), (particle[0], particle[1] + 1))
+                        n_v = (edge[1][0], edge[1][1])
+
+                        if edge not in taken:
+                            occupied_vertices[particle[0]][particle[1]] = self.finite_state_machine(
+                                occupied_vertices[particle[0]][particle[1]], "v")
+                            particle = n_v  # Success in taking point
+                            occupied_vertices[particle[0]][particle[1]] = 3
+                            taken.append(edge)
+                        else:
+                            print("Something weird has happened...")
+
+                else:
+                    if particle != end:  # If the particle isn't before the sink, where is it?
+                        print("Particle out of range!")
+                        return "Error."
+
+        return taken
+
+    # Credit to Daniel Hathcock for the beautiful algorithm
     def generate_unique_minimum(self):
-        self.pink_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
-        self.blue_grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+        edges = self.generate_unique_minimum_edges()
+        print(edges)
+        self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+        gradient_grid = [[-1 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
+
+        for x in range(self.boundary_size):  # The correct initialization.
+            gradient_grid[x][0] = 1
+
+        for edge in edges:
+            if edge[1][0] - edge[0][0] == 1:  # If it is a horizontal transition.
+                x = edge[0][0]
+                y = edge[0][1]
+                gradient_grid[x][y] = 1
+            elif edge[1][1] - edge[0][1] == 1:  # If it is a vertical transition.
+                x = edge[0][0]
+                y = edge[0][1]
+                if y == 0:  # It's one of the bottom edges.
+                    gradient_grid[x][0] = -1
+            else:
+                raise "Edge Transitions Error"
+
+        for x in range(1, self.boundary_size):
+            self.grid[x][0] = (self.grid[x - 1][0] + gradient_grid[x][0]) % 3
+
+        for x in range(self.boundary_size):
+            for y in range(1, self.boundary_size):
+                self.grid[x][y] = (self.grid[x][y - 1] + gradient_grid[x][y]) % 3
+
+                # Helper Methods
+
+    def finite_state_machine(self, state, action):
+        if state == 0:
+            if action == "h":
+                return 1
+            else:
+                return 2
+        elif state == 3:
+            if action == "h":
+                return 4
+            else:
+                return 5
+        else:
+            return "Error"
+
 
 
     def check_validity(self):
@@ -278,7 +373,6 @@ class MarkovChain:
                         raise "Incorrect state made at Flip, Peak"
                     return state
         raise "This is not a peak or valley."
-
 
     def step(self, initial_state):
         pink_vertices, pink_codes, blue_vertices, blue_codes = initial_state.set_up_GUI()

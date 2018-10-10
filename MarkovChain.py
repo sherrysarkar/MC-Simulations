@@ -105,7 +105,7 @@ class MarkovChain:
         #print(vertices)
 
         vertex = vertices[random.randint(0, (len(vertices) - 1))]
-        while 30 in vertex or 0 in vertex:
+        while initial_state.boundary_size - 1 in vertex or 0 in vertex:
             vertex = vertices[random.randint(0, (len(vertices) - 1))]
             #print("uhoh...")
         r = random.random()
@@ -138,12 +138,11 @@ class MarkovChain:
             print("Start Iteration " + str(i))
             curr_state, boolean = self.step(curr_state)
             if boolean:
-                if i >= iterations - 100 and i <= iterations:
+                if i >= iterations - 1000 and i <= iterations:
                     curr_state.draw_GUI(i)
 
-
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = SixVMState(sources=[(0, 3), (0, 4), (0, 10), (0, 40)], sinks=[(100,51), (100,50), (100, 70), (100, 90)], boundary_size=100)
+eps = SixVMState(sources=[(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)], sinks=[(100,95), (100,96), (100, 97), (100, 98), (100, 99)], boundary_size=100)
 eps.draw()
 #eps.draw_GUI(0)
 mc = MarkovChain()
