@@ -72,7 +72,7 @@ class MarkovChain:
 
     def flip(self, initial_state, vertex, valley):
         #print("Got to Flip")
-        state = SixVMState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid))
+        state = SixVMState(copy.deepcopy(initial_state.sources), copy.deepcopy(initial_state.sinks), initial_state.boundary_size, copy.deepcopy(initial_state.grid), copy.deepcopy(initial_state.vertices))
 
         if valley:
             if self.function(self.find_config_of_vertex(vertex, state)) <= 1:
@@ -82,7 +82,7 @@ class MarkovChain:
                     initial_state.draw()
                     state.draw()
                     state.draw_GUI("Error")
-                    print(vertex)
+                    #print(vertex)
                     raise "Incorrect state made at Flip, Valley"
                 return state
         else:
@@ -93,40 +93,39 @@ class MarkovChain:
                     initial_state.draw()
                     state.draw()
                     state.draw_GUI("Error")
-                    print(vertex)
+                    #print(vertex)
                     raise "Incorrect state made at Flip, Peak"
                 return state
 
         raise "This is not a peak or valley."
 
     def step(self, initial_state):  # Should be EPS state.
-        vertices, codes = initial_state.set_up_GUI()
-
-        #print(vertices)
+        vertices = initial_state.vertices  # TODO: This line is extremely inefficient.
 
         vertex = vertices[random.randint(0, (len(vertices) - 1))]
         while initial_state.boundary_size - 1 in vertex or 0 in vertex:
             vertex = vertices[random.randint(0, (len(vertices) - 1))]
-            #print("uhoh...")
         r = random.random()
 
         if r < 0.5:
             # If vertex is valley
             if self.function(self.find_config_of_vertex(vertex, initial_state)) <= 1:
                 # and the bottom of a tower of height 1, then
-                #print("is Valley")
                 if self.function(self.find_config_of_vertex((vertex[0] - 1, vertex[1] + 1), initial_state)) == 5:
                     R_2 = self.flip(initial_state, vertex, True)
                     pi = self.score(initial_state, R_2, vertex)
                     if r <= 0.5 * pi:
+                        R_2.vertices.remove(vertex)
+                        R_2.vertices.append((vertex[0] - 1, vertex[1] + 1))
                         return R_2, True
         else:
             if self.function(self.find_config_of_vertex(vertex, initial_state)) == 0 or self.function(self.find_config_of_vertex(vertex, initial_state)) == 2:
-                #print("is Peak")
                 if self.function(self.find_config_of_vertex((vertex[0] + 1, vertex[1] - 1), initial_state)) == 5:
                     R_2 = self.flip(initial_state, vertex, False)
                     pi = self.score(initial_state, R_2, vertex)
                     if r >= 1 - pi * 0.5:
+                        R_2.vertices.remove(vertex)
+                        R_2.vertices.append((vertex[0] + 1, vertex[1] - 1))
                         return R_2, True
 
         return initial_state, False
@@ -142,9 +141,18 @@ class MarkovChain:
                     curr_state.draw_GUI(i)
 
 # Note : These are translated sources (corresponding to boxes rather than points).
-eps = SixVMState(sources=[(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)], sinks=[(100,95), (100,96), (100, 97), (100, 98), (100, 99)], boundary_size=100)
-eps.draw()
+def determine_sources_sinks():
+    sources = []
+    sinks = []
+    for i in range(1, 10):
+        sources.append((0, i))
+        sinks.append((100, 100 - i))
+    return sources, sinks
+
+sources, sinks = determine_sources_sinks()
+eps = SixVMState(sources=sources, sinks=sinks, boundary_size=100)
+#eps.draw()
 #eps.draw_GUI(0)
 mc = MarkovChain()
-mc.time_travel(20000, eps)
+mc.time_travel(200000, eps)
 

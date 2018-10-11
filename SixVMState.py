@@ -4,7 +4,7 @@ from matplotlib.patches import PathPatch
 import matplotlib.pyplot as plt
 
 class SixVMState:
-    def __init__(self, sources, sinks, boundary_size, grid=[]):
+    def __init__(self, sources, sinks, boundary_size, grid=[], vertices=[]):
         if len(sources) != len(sinks):
             raise Exception("Unequal number of sources and sinks.")
         self.sources = sources
@@ -14,8 +14,9 @@ class SixVMState:
         # Let each face be uniquely represented by it's lowest left most corner.
         self.grid = []
         if len(grid) == 0:
-            self.generate_unique_minimum()
+            self.vertices = self.generate_unique_minimum()
         else:
+            self.vertices = vertices
             self.grid = grid
 
     def generate_unique_minimum_edges(self):
@@ -37,13 +38,12 @@ class SixVMState:
             end = paired_sources_sinks[i][1]
 
             while particle != end:
-                print(particle)
+                #print(particle)
                 if particle[0] < end[0]:  # Horizontal movement case
                     edge = ((particle[0], particle[1]), (particle[0] + 1, particle[1]))
                     n_v = (edge[1][0], edge[1][1])
 
                     if edge not in taken and occupied_vertices[n_v[0]][n_v[1]] != 5:
-                        # TODO: Finite State machine doesn't capture states right...
                         occupied_vertices[particle[0]][particle[1]] = self.finite_state_machine(occupied_vertices[particle[0]][particle[1]], "h")
                         particle = n_v  # Success in taking point.
                         occupied_vertices[particle[0]][particle[1]] = 0
@@ -72,7 +72,7 @@ class SixVMState:
     # Credit to Daniel Hathcock for the beautiful algorithm
     def generate_unique_minimum(self):
         edges = self.generate_unique_minimum_edges()
-        print(edges)
+        #print(edges)
         self.grid = [[0 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
         gradient_grid = [[-1 for j in range(self.boundary_size)] for i in range(self.boundary_size)]
 
@@ -99,6 +99,14 @@ class SixVMState:
             for y in range(1, self.boundary_size):
                 self.grid[x][y] = (self.grid[x][y - 1] + gradient_grid[x][y]) % 3
 
+        vertices = []
+        for edge in edges:
+            if self.boundary_size not in edge[1]:
+                vertices.append(edge[1])
+
+        print("Vertices")  # Works as expected.
+        print(vertices)
+        return vertices
 # Helper Methods
 
     def finite_state_machine(self, state, action):
@@ -199,7 +207,7 @@ class SixVMState:
                     codes += [Path.MOVETO]
                     codes += [Path.LINETO]
 
-        print(len(vertices))
+        #print(len(vertices))
         return vertices, codes
 
     def draw_GUI(self, i):
