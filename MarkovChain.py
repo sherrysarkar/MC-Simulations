@@ -2,6 +2,7 @@ import numpy as np
 import copy
 from SixVMState import SixVMState
 import random
+import math
 
 class MarkovChain:
 
@@ -11,12 +12,12 @@ class MarkovChain:
         self.configurations = []
 
         # Going in a counter clockwise direction through the four boxes
-        self.configurations.append([0, 1, 0, -1])  # CROSS                  0
-        self.configurations.append([0, 1, 0, 1])  # VALLEY                  1
-        self.configurations.append([0, -1, 0, -1])  # PEAK                  2
-        self.configurations.append([0, 1, -1, 1])  # VERTICAL LINE          3
-        self.configurations.append([0, -1, 1, -1])  # HORIZONTAL LINE       4
-        self.configurations.append([0, -1, 0, 1])  # EMPTY                  5
+        self.configurations.append([0, 1, 0, -1])  # CROSS                  0 A
+        self.configurations.append([0, 1, 0, 1])  # VALLEY                  1 C
+        self.configurations.append([0, -1, 0, -1])  # PEAK                  2 C
+        self.configurations.append([0, 1, -1, 1])  # VERTICAL LINE          3 B
+        self.configurations.append([0, -1, 1, -1])  # HORIZONTAL LINE       4 B
+        self.configurations.append([0, -1, 0, 1])  # EMPTY                  5 A
 
     def function(self, config):
         if not config:
@@ -111,7 +112,8 @@ class MarkovChain:
             # If vertex is valley
             if self.function(self.find_config_of_vertex(vertex, initial_state)) <= 1:
                 # and the bottom of a tower of height 1, then
-                if self.function(self.find_config_of_vertex((vertex[0] - 1, vertex[1] + 1), initial_state)) == 5:
+                conf = self.function(self.find_config_of_vertex((vertex[0] - 1, vertex[1] + 1), initial_state))
+                if (conf == 5 or conf == 1) and (vertex[0] - 1, vertex[1]) not in initial_state.sources:
                     R_2 = self.flip(initial_state, vertex, True)
                     pi = self.score(initial_state, R_2, vertex)
                     if r <= 0.5 * pi:
@@ -120,7 +122,8 @@ class MarkovChain:
                         return R_2, True
         else:
             if self.function(self.find_config_of_vertex(vertex, initial_state)) == 0 or self.function(self.find_config_of_vertex(vertex, initial_state)) == 2:
-                if self.function(self.find_config_of_vertex((vertex[0] + 1, vertex[1] - 1), initial_state)) == 5:
+                conf = self.function(self.find_config_of_vertex((vertex[0] + 1, vertex[1] - 1), initial_state))
+                if (conf == 5 or conf == 2) and (vertex[0] + 1, vertex[1]) not in initial_state.sinks:
                     R_2 = self.flip(initial_state, vertex, False)
                     pi = self.score(initial_state, R_2, vertex)
                     if r >= 1 - pi * 0.5:
@@ -141,18 +144,19 @@ class MarkovChain:
                     curr_state.draw_GUI(i)
 
 # Note : These are translated sources (corresponding to boxes rather than points).
+boundary_size = 20
 def determine_sources_sinks():
     sources = []
     sinks = []
-    for i in range(1, 10):
+    for i in range(1, 5):
         sources.append((0, i))
-        sinks.append((100, 100 - i))
+        sinks.append((boundary_size, boundary_size - i))
     return sources, sinks
 
 sources, sinks = determine_sources_sinks()
-eps = SixVMState(sources=sources, sinks=sinks, boundary_size=100)
+eps = SixVMState(sources=sources, sinks=sinks, boundary_size=boundary_size)
 #eps.draw()
 #eps.draw_GUI(0)
-mc = MarkovChain()
-mc.time_travel(200000, eps)
+mc = MarkovChain(weights=[math.sqrt(2)/2, 1, 1, math.sqrt(2)/2, math.sqrt(2)/2, math.sqrt(2)/2])
+mc.time_travel(100000, eps)
 
